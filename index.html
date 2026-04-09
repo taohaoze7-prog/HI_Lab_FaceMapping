@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>东方全息生命计算 | H&I Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@200;300;400;500&family=Noto+Serif+SC:wght@400;600&family=Ma+Shan+Zheng&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/master.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body data-phase="entry">
+
+<div class="viewport" id="headViewport"></div>
+
+<header class="topbar">
+  <span class="brand">H&I Lab</span>
+  <span class="clock" id="topClock"></span>
+</header>
+
+<!-- Phase: Entry -->
+<div class="phase phase-entry" id="phaseEntry">
+  <div class="entry-bottom">
+    <h1 class="entry-title">东方全息生命计算</h1>
+    <p class="entry-sub">Where Ancient Wisdom Meets AI</p>
+    <p class="entry-hint">望 闻 问 切</p>
+    <button class="start-btn" id="startBtn">置手于玉</button>
+  </div>
+</div>
+
+<!-- Phase: Questions -->
+<div class="phase phase-questions" id="phaseQuestions">
+  <div class="q-progress" id="qProgress"></div>
+  <div class="q-card" id="qCard">
+    <div class="q-exam" id="qExam">望</div>
+    <div class="q-label" id="qLabel">面形</div>
+    <div class="q-desc" id="qDesc"></div>
+    <div class="q-cite" id="qCite"></div>
+    <div class="q-options" id="qOptions"></div>
+  </div>
+  <div class="q-step-wrap" id="qStepWrap">
+    <span class="q-step-num" id="qStepNum">01</span>
+    <span class="q-step-total">/ 06</span>
+    <span class="q-step-exam" id="qStepExam">望诊</span>
+  </div>
+</div>
+
+<!-- Phase: Computing -->
+<div class="phase phase-computing" id="phaseComputing">
+  <div class="computing-label" id="computingLabel">阴阳交感</div>
+  <div class="computing-yao-wrap" id="computingYao"></div>
+  <div class="computing-sub" id="computingSub"></div>
+</div>
+
+<!-- Phase: Result — full-screen narrative -->
+<div class="phase phase-result" id="phaseResult">
+  <!-- Hero -->
+  <div class="result-hero">
+    <div class="result-hex-name" id="rHexName"></div>
+    <div class="result-hex-nature" id="rHexNature"></div>
+    <div class="result-hex-lines" id="rHexLines"></div>
+  </div>
+
+  <!-- Data ring -->
+  <div class="result-data">
+    <div>
+      <div class="result-radar-wrap">
+        <canvas id="radarCanvas" width="220" height="220"></canvas>
+      </div>
+      <div class="result-match">
+        <span class="match-num" id="matchPct">0</span><span class="match-pct">%</span>
+        <span class="match-label">吻合度</span>
+      </div>
+    </div>
+    <div class="result-mapping" id="rMapping"></div>
+  </div>
+
+  <!-- Insight -->
+  <div class="result-insight" id="rDiag"></div>
+
+  <!-- Action -->
+  <div class="result-action">
+    <div class="tip-cards" id="rTips"></div>
+
+    <div class="deep-cta">
+      <button class="deep-btn" id="deepBtn">✦ 深度诊断 — AI 分析师</button>
+      <span class="deep-hint">基于卦象与五行，获取个性化调理方案</span>
+    </div>
+
+    <div class="result-bottom">
+      <button class="restart-btn" id="restartBtn">重新问诊</button>
+    </div>
+  </div>
+</div>
+
+<!-- Phase: Analyzing — AI deep diagnosis -->
+<div class="phase phase-analyzing" id="phaseAnalyzing">
+  <div class="analyzing-header">
+    <div class="analyzing-hex" id="aHexName"></div>
+    <div class="analyzing-tag">AI 深度辨证</div>
+  </div>
+
+  <div class="analyzing-body">
+    <div class="analyzing-content" id="aContent">
+      <div class="analyzing-loading" id="aLoading">
+        正在辨证分析<span class="dot-pulse"><span></span><span></span><span></span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="analyzing-footer" id="aFooter">
+    <button class="restart-btn" id="restartBtn2">重新问诊</button>
+  </div>
+</div>
+
+<!-- API Key Modal -->
+<div class="api-modal-overlay" id="apiModal">
+  <div class="api-modal">
+    <h3>配置 API Key</h3>
+    <p>深度诊断使用 Claude Haiku 模型。请输入你的 Anthropic API Key，密钥仅存储在本地浏览器中。</p>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off">
+    <div class="api-modal-actions">
+      <button class="api-modal-btn" id="apiModalCancel">取消</button>
+      <button class="api-modal-btn primary" id="apiModalSave">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="js/iching.js"></script>
+<script src="js/radarChart.js"></script>
+<script src="js/analyst.js"></script>
+<script src="js/chamber.js"></script>
+<script type="module" src="js/headScene.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,360 @@
+/* ============================================
+   SCREEN 1 — Dynamic Face Mapping
+   ============================================ */
+
+.screen-1 {
+  gap: 20px;
+}
+
+/* ---- Header ---- */
+.screen1-header {
+  text-align: center;
+  z-index: 2;
+}
+
+.glitch-title {
+  font-size: 42px;
+  color: var(--text-primary);
+  text-shadow: 0 0 30px rgba(0, 200, 255, 0.3);
+  position: relative;
+  animation: titleGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes titleGlow {
+  from { text-shadow: 0 0 20px rgba(0, 200, 255, 0.2); }
+  to   { text-shadow: 0 0 40px rgba(0, 200, 255, 0.4), 0 0 80px rgba(0, 200, 255, 0.1); }
+}
+
+.screen1-header .subtitle {
+  margin-top: 8px;
+}
+
+.screen1-header .subtitle-sub {
+  margin-top: 4px;
+}
+
+/* ---- Face Container ---- */
+.face-container {
+  position: relative;
+  width: 400px;
+  height: 520px;
+  z-index: 2;
+}
+
+/* ---- SVG Face ---- */
+.face-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.face-outline {
+  fill: none;
+  stroke: var(--cyan);
+  stroke-width: 1.5;
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 1200;
+  opacity: 0.8;
+  filter: drop-shadow(0 0 8px rgba(0, 200, 255, 0.3));
+  transition: stroke-dashoffset 2s ease;
+}
+
+.face-outline.revealed {
+  stroke-dashoffset: 0;
+}
+
+.compartment-line, .eye-line {
+  stroke: var(--neon-pink);
+  stroke-width: 0.8;
+  stroke-dasharray: 4 4;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+
+.compartment-line.visible, .eye-line.visible {
+  opacity: 0.5;
+}
+
+.crosshair {
+  stroke: var(--neon-green);
+  stroke-width: 1.5;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.crosshair.visible {
+  opacity: 0.8;
+}
+
+.feature-mark {
+  fill: none;
+  stroke: rgba(0, 200, 255, 0.4);
+  stroke-width: 1;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.feature-mark.visible {
+  opacity: 1;
+}
+
+/* ---- Scan Line ---- */
+.scan-line {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--scan-color), var(--cyan), var(--scan-color), transparent);
+  box-shadow: 0 0 20px var(--cyan-dim), 0 0 60px rgba(0, 200, 255, 0.1);
+  opacity: 0;
+  top: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.scan-line.scanning {
+  opacity: 1;
+  animation: scanDown 2s ease-in-out forwards;
+}
+
+@keyframes scanDown {
+  0%   { top: 0; opacity: 0; }
+  5%   { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* ---- Palace Markers ---- */
+.palace-marker {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.palace-marker.visible {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.palace-marker.right {
+  flex-direction: row-reverse;
+  transform: translateX(10px);
+}
+
+.palace-marker.right.visible {
+  transform: translateX(0);
+}
+
+.palace-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan), 0 0 16px var(--cyan-dim);
+  flex-shrink: 0;
+  animation: dotPulse 2s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+  0%, 100% { box-shadow: 0 0 8px var(--cyan), 0 0 16px var(--cyan-dim); }
+  50%      { box-shadow: 0 0 12px var(--cyan), 0 0 24px var(--cyan-dim); }
+}
+
+.palace-line {
+  width: 30px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--cyan), transparent);
+  flex-shrink: 0;
+}
+
+.palace-marker.right .palace-line {
+  background: linear-gradient(270deg, var(--cyan), transparent);
+}
+
+.palace-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.palace-zh {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-shadow: 0 0 10px rgba(0, 200, 255, 0.3);
+}
+
+.palace-en {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 9px;
+  color: var(--text-secondary);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ---- Compartment Labels ---- */
+.comp-label {
+  position: absolute;
+  right: -80px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.comp-label.visible {
+  opacity: 1;
+}
+
+.comp-top  { top: 80px; }
+.comp-mid  { top: 200px; }
+.comp-bot  { top: 350px; }
+
+.comp-zh {
+  font-size: 14px;
+  color: var(--neon-pink);
+  font-weight: 500;
+}
+
+.comp-en {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+}
+
+/* ---- Five Eyes Label ---- */
+.five-eyes-label {
+  position: absolute;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
+  color: var(--neon-pink);
+  letter-spacing: 0.15em;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.five-eyes-label.visible {
+  opacity: 0.6;
+}
+
+/* ---- Status Readout ---- */
+.status-readout {
+  width: 400px;
+  z-index: 2;
+}
+
+.status-line {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--neon-green);
+  margin-bottom: 6px;
+  min-height: 18px;
+}
+
+.status-progress {
+  width: 100%;
+  height: 2px;
+  background: rgba(0, 200, 255, 0.1);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--cyan), var(--neon-green));
+  border-radius: 1px;
+  transition: width 0.3s ease;
+}
+
+/* ---- Buttons ---- */
+.scan-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 32px;
+  background: transparent;
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  font-family: 'Orbitron', 'Noto Sans SC', sans-serif;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 2;
+  letter-spacing: 0.1em;
+}
+
+.scan-btn:hover {
+  background: rgba(0, 200, 255, 0.1);
+  box-shadow: 0 0 30px rgba(0, 200, 255, 0.2);
+  transform: scale(1.02);
+}
+
+.scan-btn-icon {
+  font-size: 20px;
+  animation: iconPulse 2s ease-in-out infinite;
+}
+
+@keyframes iconPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
+}
+
+.scan-btn.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.95);
+}
+
+.proceed-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 36px;
+  background: rgba(0, 200, 255, 0.1);
+  border: 1px solid var(--neon-green);
+  color: var(--neon-green);
+  font-family: 'Orbitron', 'Noto Sans SC', sans-serif;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.4s ease;
+  z-index: 2;
+  letter-spacing: 0.1em;
+}
+
+.proceed-btn.visible {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  animation: btnAppear 0.6s ease forwards;
+}
+
+@keyframes btnAppear {
+  from { transform: translateY(10px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+.proceed-btn:hover {
+  background: rgba(0, 255, 136, 0.1);
+  box-shadow: 0 0 30px rgba(0, 255, 136, 0.2);
+}
+
+.btn-arrow {
+  transition: transform 0.3s ease;
+}
+
+.proceed-btn:hover .btn-arrow {
+  transform: translateX(5px);
+}
