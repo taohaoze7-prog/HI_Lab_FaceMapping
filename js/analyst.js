@@ -1,188 +1,82 @@
 /* ============================================
    ANALYST — AI 深度辨证
-   Claude Haiku streaming integration.
+   Gemini 2.5 Flash streaming integration.
    ============================================ */
 
+// API key is kept server-side — the browser only talks to the local proxy
+const GEMINI_URL = '/api/analyze';
+
 const Analyst = {
-  apiKey: null,
   isStreaming: false,
+  _lastResult:  null,
+  _lastAnswers: null,
+  _firstAnalysisText: '',
 
   init() {
-    // Load saved API key
-    this.apiKey = localStorage.getItem('claude_api_key') || null;
-
-    // Modal handlers
-    document.getElementById('apiModalCancel').addEventListener('click', () => {
-      this.hideModal();
+    document.getElementById('deeperSubmitBtn').addEventListener('click', () => {
+      this.deeperAnalyze();
     });
 
-    document.getElementById('apiModalSave').addEventListener('click', () => {
-      const key = document.getElementById('apiKeyInput').value.trim();
-      if (key) {
-        this.apiKey = key;
-        localStorage.setItem('claude_api_key', key);
-        this.hideModal();
-        // Trigger analysis after saving key
-        if (this._pendingResult) {
-          this.analyze(this._pendingResult, this._pendingAnswers);
-          this._pendingResult = null;
-          this._pendingAnswers = null;
-        }
-      }
+    // Allow Ctrl/Cmd+Enter to submit
+    document.getElementById('deeperTextarea').addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') this.deeperAnalyze();
     });
-
-    // Close modal on overlay click
-    document.getElementById('apiModal').addEventListener('click', (e) => {
-      if (e.target.id === 'apiModal') this.hideModal();
-    });
-  },
-
-  showModal() {
-    const modal = document.getElementById('apiModal');
-    const input = document.getElementById('apiKeyInput');
-    if (this.apiKey) input.value = this.apiKey;
-    modal.classList.add('visible');
-    setTimeout(() => input.focus(), 100);
-  },
-
-  hideModal() {
-    document.getElementById('apiModal').classList.remove('visible');
   },
 
   /**
-   * Start deep analysis.
-   * If no API key, show modal first.
+   * Start the initial deep analysis.
    */
   startAnalysis(result, answers) {
-    if (!this.apiKey) {
-      this._pendingResult = result;
-      this._pendingAnswers = answers;
-      this.showModal();
-      return;
-    }
+    this._lastResult  = result;
+    this._lastAnswers = answers;
+    this._firstAnalysisText = '';
+
+    // Reset deeper section
+    const wrap = document.getElementById('deeperInputWrap');
+    wrap.classList.remove('visible');
+    document.getElementById('deeperTextarea').value = '';
+    document.getElementById('deeperSubmitBtn').disabled = false;
+    document.getElementById('deeperBody').style.display = 'none';
+    document.getElementById('dContent').innerHTML = '';
+
     this.analyze(result, answers);
   },
 
   /**
-   * Core analysis — call Claude Haiku with streaming.
+   * Initial analysis stream.
    */
   async analyze(result, answers) {
     if (this.isStreaming) return;
     this.isStreaming = true;
 
-    // Set up analyzing phase UI
     document.getElementById('aHexName').textContent = result.hexagram.title;
 
     const contentEl = document.getElementById('aContent');
     const loadingEl = document.getElementById('aLoading');
-    const footerEl = document.getElementById('aFooter');
+    const footerEl  = document.getElementById('aFooter');
 
     contentEl.innerHTML = '';
     contentEl.appendChild(loadingEl);
     loadingEl.style.display = 'block';
     footerEl.classList.remove('visible');
 
-    // Switch phase
     document.body.dataset.phase = 'analyzing';
 
-    // Build prompt
     const prompt = this.buildPrompt(result, answers);
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': this.apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 2048,
-          stream: true,
-          messages: [{
-            role: 'user',
-            content: prompt,
-          }],
-        }),
-      });
+      const fullText = await this.stream(prompt, contentEl);
+      this._firstAnalysisText = fullText;
 
-      if (!response.ok) {
-        const err = await response.text();
-        throw new Error(`API error ${response.status}: ${err}`);
-      }
-
-      // Hide loading, start streaming
-      loadingEl.style.display = 'none';
-
-      // Create content container with cursor
-      const textContainer = document.createElement('div');
-      const cursor = document.createElement('span');
-      cursor.className = 'typing-cursor';
-      contentEl.appendChild(textContainer);
-      contentEl.appendChild(cursor);
-
-      // Read SSE stream
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let fullText = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const data = line.slice(6);
-          if (data === '[DONE]') continue;
-
-          try {
-            const parsed = JSON.parse(data);
-
-            if (parsed.type === 'content_block_delta' &&
-                parsed.delta && parsed.delta.type === 'text_delta') {
-              const text = parsed.delta.text;
-              fullText += text;
-              this.renderMarkdown(textContainer, fullText);
-
-              // Auto-scroll
-              const phase = document.getElementById('phaseAnalyzing');
-              phase.scrollTop = phase.scrollHeight;
-            }
-          } catch (e) {
-            // Skip unparseable lines
-          }
-        }
-      }
-
-      // Remove cursor, show footer
-      cursor.remove();
-      footerEl.classList.add('visible');
+      // Reveal deeper input after a short pause
+      setTimeout(() => {
+        document.getElementById('deeperInputWrap').classList.add('visible');
+        footerEl.classList.add('visible');
+      }, 600);
 
     } catch (error) {
       loadingEl.style.display = 'none';
-
-      contentEl.innerHTML = `
-        <div style="color: var(--elem-fire); padding: 20px 0;">
-          <p style="margin-bottom: 8px;">分析请求失败</p>
-          <p style="font-size: 11px; color: var(--warm-12);">${this.escapeHtml(error.message)}</p>
-          <p style="font-size: 11px; color: var(--warm-06); margin-top: 12px;">
-            请检查 API Key 是否正确，或网络是否可用。
-          </p>
-          <button onclick="Analyst.showModal()" style="
-            margin-top: 16px; padding: 8px 24px;
-            border: 1px solid var(--jade-25); background: transparent;
-            color: var(--jade); font-size: 12px; cursor: pointer;
-            font-family: var(--font-body); letter-spacing: 0.05em;
-          ">重新配置 API Key</button>
-        </div>
-      `;
+      contentEl.innerHTML = this.errorHTML(error.message);
       footerEl.classList.add('visible');
     }
 
@@ -190,7 +84,110 @@ const Analyst = {
   },
 
   /**
-   * Build the TCM analysis prompt.
+   * Deeper analysis using the extra details the user typed.
+   */
+  async deeperAnalyze() {
+    const details = document.getElementById('deeperTextarea').value.trim();
+    if (!details || this.isStreaming) return;
+
+    document.getElementById('deeperSubmitBtn').disabled = true;
+
+    const deeperBodyEl = document.getElementById('deeperBody');
+    const dContentEl   = document.getElementById('dContent');
+    deeperBodyEl.style.display = 'block';
+    dContentEl.innerHTML = `
+      <div class="analyzing-loading">
+        深层辨证中<span class="dot-pulse"><span></span><span></span><span></span></span>
+      </div>`;
+
+    // Scroll to the deeper section
+    setTimeout(() => {
+      deeperBodyEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+
+    const prompt = this.buildDeeperPrompt(details);
+
+    try {
+      await this.stream(prompt, dContentEl, true);
+    } catch (error) {
+      dContentEl.innerHTML = this.errorHTML(error.message);
+    }
+  },
+
+  /**
+   * Core SSE streaming helper. Returns the full accumulated text.
+   * bilingual=true splits on [MANDARIN] and renders two panels.
+   */
+  async stream(prompt, containerEl, bilingual = false) {
+    const response = await fetch(GEMINI_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: 2048, temperature: 0.7 },
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`API error ${response.status}: ${err}`);
+    }
+
+    containerEl.innerHTML = '';
+
+    // For bilingual mode the cursor sits after the container, not inside it
+    // (renderBilingual replaces innerHTML on every chunk which would wipe it)
+    const textContainer = bilingual ? null : document.createElement('div');
+    const cursor = document.createElement('span');
+    cursor.className = 'typing-cursor';
+    if (!bilingual) {
+      containerEl.appendChild(textContainer);
+      containerEl.appendChild(cursor);
+    } else {
+      containerEl.insertAdjacentElement('afterend', cursor);
+    }
+
+    const reader  = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer   = '';
+    let fullText = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') continue;
+
+        try {
+          const parsed = JSON.parse(data);
+          const part = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (part) {
+            fullText += part;
+            if (bilingual) {
+              this.renderBilingual(containerEl, fullText);
+            } else {
+              this.renderMarkdown(textContainer, fullText);
+            }
+            const phase = document.getElementById('phaseAnalyzing');
+            phase.scrollTop = phase.scrollHeight;
+          }
+        } catch (e) { /* skip */ }
+      }
+    }
+
+    cursor.remove();
+    return fullText;
+  },
+
+  /**
+   * Initial TCM diagnosis prompt.
    */
   buildPrompt(result, answers) {
     const elemNames = { metal: '金', wood: '木', water: '水', fire: '火', earth: '土' };
@@ -242,29 +239,104 @@ ${answerLines}
   },
 
   /**
-   * Simple markdown → HTML renderer.
+   * Deeper follow-up prompt — includes first analysis + user details.
+   * Output format: English first, then [MANDARIN] marker, then Chinese translation.
    */
-  renderMarkdown(container, text) {
-    let html = text
-      // Headers
-      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-      // Bold
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      // List items
-      .replace(/^- (.+)$/gm, '<li>$1</li>')
-      // Wrap consecutive <li> in <ul>
-      .replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>')
-      // Paragraphs (double newline)
-      .replace(/\n\n/g, '</p><p>')
-      // Single newlines within paragraphs
-      .replace(/\n/g, '<br>');
+  buildDeeperPrompt(userDetails) {
+    const result  = this._lastResult;
+    const answers = this._lastAnswers;
+    const elemNames = { metal: '金', wood: '木', water: '水', fire: '火', earth: '土' };
 
-    // Wrap in paragraph
-    if (!html.startsWith('<h2>') && !html.startsWith('<p>')) {
-      html = '<p>' + html + '</p>';
+    const answerLines = Object.entries(answers).map(([key, val]) => {
+      const labelMap = {
+        faceShape: 'Face shape', complexion: 'Complexion', voice: 'Voice',
+        emotion: 'Emotion', taste: 'Taste preference', sleep: 'Sleep',
+      };
+      return `- ${labelMap[key] || key}: ${val.text} (${val.element || 'unknown'})`;
+    }).join('\n');
+
+    const weightLine = Object.entries(result.weights)
+      .map(([k, v]) => `${k}:${Math.round(v * 100)}%`)
+      .join('  ');
+
+    return `You are a senior Traditional Chinese Medicine practitioner writing a personalised deeper reading. Write directly — no introductory phrases, no disclaimers, no references to being an AI or a language model.
+
+PATIENT CONTEXT
+${answerLines}
+
+Hexagram: ${result.hexagram.title} (#${result.hexagram.num}) — ${result.hexagram.nature}
+Five-element weights: ${weightLine}
+
+INITIAL ANALYSIS (summary)
+${this._firstAnalysisText.slice(0, 1000)}
+
+PATIENT'S ADDITIONAL DETAILS
+${userDetails}
+
+OUTPUT RULES
+- Begin writing immediately with the first section heading.
+- Use exactly these three section headings (in this order): ## Deeper Pattern, ## Targeted Recommendations, ## Key Cautions
+- Under each heading write 2–4 concise sentences or bullet points.
+- Total length: 220–300 words.
+- No preamble. No closing remarks. No "In conclusion". No "As a TCM practitioner".
+- After the English is complete, output the exact marker line: [MANDARIN]
+- Then write a faithful Mandarin Chinese translation of everything above the marker, using the same three headings translated as: ## 深层辨证, ## 精准调理, ## 注意事项
+- The Mandarin section must be a translation, not a new analysis.`;
+  },
+
+  /**
+   * Bilingual renderer — splits on [MANDARIN] marker.
+   * English panel on top, Mandarin panel below.
+   */
+  renderBilingual(container, text) {
+    const marker = '[MANDARIN]';
+    const idx = text.indexOf(marker);
+
+    const enRaw = idx === -1 ? text : text.slice(0, idx);
+    const zhRaw = idx === -1 ? ''   : text.slice(idx + marker.length);
+
+    let html = `<div class="bilingual-en">${this.markdownToHTML(enRaw)}</div>`;
+
+    if (zhRaw.trim()) {
+      html += `
+        <div class="bilingual-divider">
+          <span class="bilingual-divider-label">中文译文</span>
+        </div>
+        <div class="bilingual-zh">${this.markdownToHTML(zhRaw)}</div>`;
     }
 
     container.innerHTML = html;
+  },
+
+  /**
+   * Simple markdown → HTML renderer.
+   */
+  renderMarkdown(container, text) {
+    container.innerHTML = this.markdownToHTML(text);
+  },
+
+  markdownToHTML(text) {
+    let html = text.trim()
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      .replace(/((?:<li>.*?<\/li>\n?)+)/gs, '<ul>$1</ul>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/\n/g, '<br>');
+
+    if (!html.startsWith('<h2>') && !html.startsWith('<p>')) {
+      html = '<p>' + html + '</p>';
+    }
+    return html;
+  },
+
+  errorHTML(msg) {
+    return `
+      <div style="color: var(--elem-fire); padding: 20px 0;">
+        <p style="margin-bottom: 8px;">分析请求失败</p>
+        <p style="font-size: 11px; color: var(--warm-12);">${this.escapeHtml(msg)}</p>
+        <p style="font-size: 11px; color: var(--warm-06); margin-top: 12px;">请检查网络连接是否正常。</p>
+      </div>`;
   },
 
   escapeHtml(str) {

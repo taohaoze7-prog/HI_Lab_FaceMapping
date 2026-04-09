@@ -98,7 +98,9 @@ const Chamber = {
     document.getElementById('startBtn').addEventListener('click', () => this.startQuestions());
     document.getElementById('restartBtn').addEventListener('click', () => this.restart());
     document.getElementById('restartBtn2').addEventListener('click', () => this.restart());
-    document.getElementById('deepBtn').addEventListener('click', () => this.triggerDeepAnalysis());
+    document.getElementById('fortuneBtn').addEventListener('click', () => this.showFortune());
+    document.getElementById('fortuneDeepBtn').addEventListener('click', () => this.triggerDeepAnalysis());
+    document.getElementById('restartBtn3').addEventListener('click', () => this.restart());
 
     const progress = document.getElementById('qProgress');
     this.questions.forEach(() => {
@@ -365,6 +367,26 @@ const Chamber = {
       if (t < 1) requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
+  },
+
+  showFortune() {
+    if (!this.lastResult) return;
+    const fortune = IChing.generateFortune(this.lastResult);
+    const hex = this.lastResult.hexagram;
+
+    document.getElementById('fHexName').textContent = hex.title;
+    document.getElementById('fHexNum').textContent = `第 ${hex.num} 卦`;
+
+    document.getElementById('fEnNature').textContent = fortune.en.nature;
+    document.getElementById('fEnElem').textContent = `Dominant Element · ${fortune.en.element}`;
+    document.getElementById('fEnBody').textContent = fortune.en.body;
+
+    document.getElementById('fZhNature').textContent = fortune.zh.nature;
+    document.getElementById('fZhElem').textContent = `主行五行 · ${fortune.zh.element}`;
+    document.getElementById('fZhBody').textContent = fortune.zh.body;
+
+    document.getElementById('phaseFortune').scrollTop = 0;
+    this.setPhase('fortune');
   },
 
   triggerDeepAnalysis() {

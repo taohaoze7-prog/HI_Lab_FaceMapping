@@ -231,6 +231,118 @@ const IChing = {
     return weights;
   },
 
+  // English translations of each hexagram's nature
+  natureEn: {
+    '111111': 'Strength Through Integrity',
+    '000000': 'Virtue That Supports All Things',
+    '100010': 'Difficulty at the Outset',
+    '010001': 'Awakening and Guidance',
+    '111010': 'Patient Awaiting of Opportunity',
+    '010111': 'Conflict Brings No Fortune',
+    '010000': 'Leadership of the People',
+    '000010': 'Close Alliance and Support',
+    '111011': 'Gathering Inner Power',
+    '110111': 'Treading with Caution',
+    '111000': 'Harmony and Prosperity Flow',
+    '000111': 'Obstruction Blocks the Way',
+    '101111': 'Kindred Souls in Union',
+    '111101': 'Great Abundance Is Yours',
+    '001000': 'Humility Opens the Path',
+    '000100': 'Joy and Celebration Abound',
+    '100110': 'Follow the Flow of Time',
+    '011001': 'Restore Order from Chaos',
+    '110000': 'Drawing Near with Purpose',
+    '000011': 'Contemplation and Reflection',
+    '100101': 'Clear Judgment of Right and Wrong',
+    '101001': 'Grace and Inner Cultivation',
+    '000001': 'Deterioration Calls for Rest',
+    '100000': 'Return to Original Nature',
+    '100111': 'Act Without Presumption',
+    '111001': 'Storing Great Power Within',
+    '100001': 'Nourishment on the Righteous Path',
+    '011110': 'Excess Disrupts Balance',
+    '010010': 'Obstacles on Every Side',
+    '101101': 'Radiance Illuminates All',
+    '001110': 'Hearts in Resonance',
+    '011100': 'Endurance and Constancy',
+    '001111': 'Strategic Retreat Preserves Strength',
+    '111100': 'Vigor and Righteous Power',
+    '000101': 'Progress Rises Forward',
+    '101000': 'Conceal Brilliance, Bide Your Time',
+    '101011': 'Family Harmony on Right Course',
+    '110101': 'Separation Invites Reflection',
+    '001010': 'The Road Ahead Is Steep',
+    '010100': 'Liberation from Difficulty',
+    '110001': 'Through Sacrifice Comes Gain',
+    '100011': 'Increase Brings Development',
+    '011111': 'Resolve with Decisive Courage',
+    '111110': 'An Unexpected Encounter',
+    '000110': 'Gathering Forces Together',
+    '011000': 'Rising Through Steady Effort',
+    '010110': 'Adversity Tests the Spirit',
+    '011010': 'The Well Nourishes Without End',
+    '101110': 'Transformation and Renewal',
+    '011101': 'The Cauldron Purifies and Renews',
+    '100100': 'Thunder Awakens Decisive Action',
+    '001001': 'Stillness Offers Clarity',
+    '001011': 'Gradual Progress, Step by Step',
+    '110100': 'Finding Home and Stability',
+    '101100': 'Abundance and Flourishing',
+    '001101': 'The Journey of the Wanderer',
+    '011011': 'Gentle Persistence Penetrates All',
+    '110110': 'Joy and Harmonious Exchange',
+    '010011': 'Dispersion Precedes Renewal',
+    '110010': 'Moderation Sustains the Way',
+    '110011': 'Inner Sincerity Holds True',
+    '001100': 'Small Excess, Small Correction',
+    '101010': 'The Task Is Accomplished',
+    '010101': 'The Work Is Not Yet Done',
+  },
+
+  // Element-based fortune supplements
+  elementFortuneEn: {
+    metal: 'The Metal element calls for clarity and decisive action. Purify your intentions, set clear boundaries, and trust your capacity to discern what truly matters. This season invites you to release what no longer serves and refine what endures.',
+    wood: 'The Wood element invites growth and long-range vision. Align yourself with goals that take root over time, nurture your creative spirit, and let your aspirations rise like a young tree reaching steadily toward light.',
+    water: 'The Water element brings deep wisdom and quiet adaptability. Flow around the obstacles before you rather than resisting them. Trust your intuition — in stillness lies a power greater than force.',
+    fire: 'The Fire element illuminates what was once hidden. Your inner warmth is a genuine gift; share it openly, lead from the heart, and let enthusiasm and clarity guide each step of your path.',
+    earth: 'The Earth element grounds and sustains. Tend carefully to your foundations, honor the commitments you have made, and trust that patient, steady effort laid day by day will bring a lasting and worthy harvest.',
+  },
+
+  elementFortuneZh: {
+    metal: '金气主收敛，宜清心寡欲，明断取舍。此时当以清静之心应物，去浮躁而存本真，方能纳秋气之恩泽，得内在之清明。',
+    wood: '木气主生发，宜养肝疏情，目光长远。当以向上之志开拓前路，如春芽破土而出，顺势而为则万物生长，勇于进取则前程光明。',
+    water: '水气主智慧，宜顺势而为，以柔克刚。静水深流，智者知时而动。内敛而不失锋芒，守柔方可驾驭刚强，顺流而进自有所成。',
+    fire: '火气主明达，宜以热忱感召，以真心相待。内心光明则外事通达，善用直觉以应万变。慷慨分享所知，心火旺盛则道路自明。',
+    earth: '土气主厚重，宜稳固根基，守信践诺。厚德载物，持重待时。以诚信之心立足，踏实耕耘必有收获，根深则枝叶自然繁茂。',
+  },
+
+  /**
+   * Generate bilingual fortune reading
+   */
+  generateFortune(result) {
+    const hex = result.hexagram;
+    const sorted = Object.entries(result.weights).sort((a, b) => b[1] - a[1]);
+    const dominant = sorted[0][0];
+    const elemNames = { metal: '金', wood: '木', water: '水', fire: '火', earth: '土' };
+    const elemNamesEn = { metal: 'Metal', wood: 'Wood', water: 'Water', fire: 'Fire', earth: 'Earth' };
+
+    const natureEn = this.natureEn[result.binary] || hex.nature;
+
+    return {
+      en: {
+        nature: natureEn,
+        element: elemNamesEn[dominant],
+        body: this.elementFortuneEn[dominant],
+      },
+      zh: {
+        title: hex.title,
+        nature: hex.nature,
+        element: elemNames[dominant],
+        body: this.elementFortuneZh[dominant],
+      },
+    };
+  },
+
   /**
    * Generate diagnosis text lines
    */

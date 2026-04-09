@@ -89,12 +89,51 @@
     <div class="tip-cards" id="rTips"></div>
 
     <div class="deep-cta">
-      <button class="deep-btn" id="deepBtn">✦ 深度诊断 — AI 分析师</button>
-      <span class="deep-hint">基于卦象与五行，获取个性化调理方案</span>
+      <button class="fortune-btn" id="fortuneBtn">命运玄机 · Read Your Fortune</button>
+      <span class="deep-hint">揭示卦象吉凶 · Bilingual fortune interpretation</span>
     </div>
 
     <div class="result-bottom">
       <button class="restart-btn" id="restartBtn">重新问诊</button>
+    </div>
+  </div>
+</div>
+
+<!-- Phase: Fortune — Bilingual fortune reading -->
+<div class="phase phase-fortune" id="phaseFortune">
+  <div class="fortune-inner">
+
+    <div class="fortune-header">
+      <div class="fortune-hex-name" id="fHexName"></div>
+      <div class="fortune-hex-num" id="fHexNum"></div>
+    </div>
+
+    <!-- English (top) -->
+    <div class="fortune-block fortune-block-en">
+      <div class="fortune-lang-label">Fortune Reading</div>
+      <div class="fortune-en-nature" id="fEnNature"></div>
+      <div class="fortune-en-elem" id="fEnElem"></div>
+      <div class="fortune-en-body" id="fEnBody"></div>
+    </div>
+
+    <div class="fortune-divider">
+      <span class="fortune-divider-glyph">✦</span>
+    </div>
+
+    <!-- Chinese (bottom) -->
+    <div class="fortune-block fortune-block-zh">
+      <div class="fortune-lang-label">卦象解读</div>
+      <div class="fortune-zh-nature" id="fZhNature"></div>
+      <div class="fortune-zh-elem" id="fZhElem"></div>
+      <div class="fortune-zh-body" id="fZhBody"></div>
+    </div>
+
+  </div>
+
+  <div class="fortune-footer">
+    <button class="deep-btn" id="fortuneDeepBtn">✦ 深度诊断 — Gemini 分析师</button>
+    <div class="result-bottom">
+      <button class="restart-btn" id="restartBtn3">重新问诊</button>
     </div>
   </div>
 </div>
@@ -114,21 +153,25 @@
     </div>
   </div>
 
+  <!-- Deeper analysis input — revealed after first analysis completes -->
+  <div class="deeper-input-wrap" id="deeperInputWrap">
+    <div class="deeper-input-label">Add details for a deeper reading</div>
+    <div class="deeper-input-hint">症状、近况、具体问题 — anything you'd tell a physician</div>
+    <textarea class="deeper-textarea" id="deeperTextarea" rows="3"
+      placeholder="e.g. I've had persistent lower back pain for two weeks, feel cold easily, and wake at 3 am…"></textarea>
+    <button class="deeper-submit-btn" id="deeperSubmitBtn">✦ Deepen the Analysis</button>
+  </div>
+
+  <!-- Second analysis result — appended below -->
+  <div class="analyzing-body deeper-body" id="deeperBody" style="display:none;">
+    <div class="deeper-divider">
+      <span class="deeper-divider-label">深层辨证 · Deeper Reading</span>
+    </div>
+    <div class="analyzing-content" id="dContent"></div>
+  </div>
+
   <div class="analyzing-footer" id="aFooter">
     <button class="restart-btn" id="restartBtn2">重新问诊</button>
-  </div>
-</div>
-
-<!-- API Key Modal -->
-<div class="api-modal-overlay" id="apiModal">
-  <div class="api-modal">
-    <h3>配置 API Key</h3>
-    <p>深度诊断使用 Claude Haiku 模型。请输入你的 Anthropic API Key，密钥仅存储在本地浏览器中。</p>
-    <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off">
-    <div class="api-modal-actions">
-      <button class="api-modal-btn" id="apiModalCancel">取消</button>
-      <button class="api-modal-btn primary" id="apiModalSave">确认</button>
-    </div>
   </div>
 </div>
 
