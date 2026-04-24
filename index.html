@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>东方全息生命计算 | H&I Lab</title>
+<title>观相 Guan Xiang | H&I Lab</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@200;300;400;500&family=Noto+Serif+SC:wght@400;600&family=Ma+Shan+Zheng&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/master.css">
 <script type="importmap">
@@ -26,11 +26,13 @@
 
 <!-- Phase: Entry -->
 <div class="phase phase-entry" id="phaseEntry">
-  <div class="entry-bottom">
-    <h1 class="entry-title">东方全息生命计算</h1>
+  <div class="entry-top">
+    <h1 class="entry-title">观 相<span class="en-sub">Guan Xiang · The Art of Face Reading</span></h1>
     <p class="entry-sub">Where Ancient Wisdom Meets AI</p>
-    <p class="entry-hint">望 闻 问 切</p>
-    <button class="start-btn" id="startBtn">置手于玉</button>
+  </div>
+  <div class="entry-bottom">
+    <p class="entry-hint">望 闻 问 切<span class="en-sub">LOOK · LISTEN · INQUIRE · TOUCH</span></p>
+    <button class="start-btn" id="startBtn">置手于玉<span class="en-sub">Place Your Hand on the Jade</span></button>
   </div>
 </div>
 
@@ -47,13 +49,13 @@
   <div class="q-step-wrap" id="qStepWrap">
     <span class="q-step-num" id="qStepNum">01</span>
     <span class="q-step-total">/ 06</span>
-    <span class="q-step-exam" id="qStepExam">望诊</span>
+    <span class="q-step-exam" id="qStepExam">望诊<span class="en-sub" id="qStepExamEn">Observation</span></span>
   </div>
 </div>
 
 <!-- Phase: Computing -->
 <div class="phase phase-computing" id="phaseComputing">
-  <div class="computing-label" id="computingLabel">阴阳交感</div>
+  <div class="computing-label" id="computingLabel">阴阳交感<span class="en-sub" id="computingLabelEn">Yin-Yang Resonance</span></div>
   <div class="computing-yao-wrap" id="computingYao"></div>
   <div class="computing-sub" id="computingSub"></div>
 </div>
@@ -75,7 +77,7 @@
       </div>
       <div class="result-match">
         <span class="match-num" id="matchPct">0</span><span class="match-pct">%</span>
-        <span class="match-label">吻合度</span>
+        <span class="match-label">吻合度<span class="en-sub">Resonance</span></span>
       </div>
     </div>
     <div class="result-mapping" id="rMapping"></div>
@@ -90,11 +92,11 @@
 
     <div class="deep-cta">
       <button class="fortune-btn" id="fortuneBtn">命运玄机 · Read Your Fortune</button>
-      <span class="deep-hint">揭示卦象吉凶 · Bilingual fortune interpretation</span>
+      <span class="deep-hint">揭示卦象吉凶 · Reveal the hexagram's auspice</span>
     </div>
 
     <div class="result-bottom">
-      <button class="restart-btn" id="restartBtn">重新问诊</button>
+      <button class="restart-btn" id="restartBtn">重新问诊<span class="en-sub">Start Over</span></button>
     </div>
   </div>
 </div>
@@ -133,7 +135,7 @@
   <div class="fortune-footer">
     <button class="deep-btn" id="fortuneDeepBtn">✦ 深度诊断 — Gemini 分析师</button>
     <div class="result-bottom">
-      <button class="restart-btn" id="restartBtn3">重新问诊</button>
+      <button class="restart-btn" id="restartBtn3">重新问诊<span class="en-sub">Start Over</span></button>
     </div>
   </div>
 </div>
@@ -142,40 +144,42 @@
 <div class="phase phase-analyzing" id="phaseAnalyzing">
   <div class="analyzing-header">
     <div class="analyzing-hex" id="aHexName"></div>
-    <div class="analyzing-tag">AI 深度辨证</div>
+    <div class="analyzing-tag">AI 深度辨证<span class="en-sub">AI Deep Diagnosis</span></div>
   </div>
 
   <div class="analyzing-body">
     <div class="analyzing-content" id="aContent">
       <div class="analyzing-loading" id="aLoading">
-        正在辨证分析<span class="dot-pulse"><span></span><span></span><span></span></span>
+        正在辨证分析 · Diagnosing<span class="dot-pulse"><span></span><span></span><span></span></span>
       </div>
     </div>
   </div>
 
-  <!-- Deeper analysis input — revealed after first analysis completes -->
-  <div class="deeper-input-wrap" id="deeperInputWrap">
-    <div class="deeper-input-label">Add details for a deeper reading</div>
-    <div class="deeper-input-hint">症状、近况、具体问题 — anything you'd tell a physician</div>
-    <textarea class="deeper-textarea" id="deeperTextarea" rows="3"
-      placeholder="e.g. I've had persistent lower back pain for two weeks, feel cold easily, and wake at 3 am…"></textarea>
-    <button class="deeper-submit-btn" id="deeperSubmitBtn">✦ Deepen the Analysis</button>
-  </div>
-
-  <!-- Second analysis result — appended below -->
+  <!-- Round 2 result (subsequent rounds dynamically inserted by analyst.js, before #deeperInputWrap) -->
   <div class="analyzing-body deeper-body" id="deeperBody" style="display:none;">
     <div class="deeper-divider">
-      <span class="deeper-divider-label">深层辨证 · Deeper Reading</span>
+      <span class="deeper-divider-label">第二次分析 · Round 2 — Deeper Reading</span>
     </div>
     <div class="analyzing-content" id="dContent"></div>
   </div>
 
+  <!-- Reusable input — stays at the bottom; reveal after round 1 finishes; reused for further rounds -->
+  <div class="deeper-input-wrap" id="deeperInputWrap">
+    <div class="deeper-input-label">补充细节，进入更深一层辨证 · Add details for a deeper reading</div>
+    <div class="deeper-input-hint">症状、近况、具体问题 — anything you'd tell a physician. 可多次追问 — ask follow-ups freely.</div>
+    <textarea class="deeper-textarea" id="deeperTextarea" rows="3"
+      placeholder="例如：腰部隐痛两周，畏寒，凌晨三点易醒…  /  e.g. persistent lower back pain for two weeks, feel cold easily, wake at 3 am…"></textarea>
+    <button class="deeper-submit-btn" id="deeperSubmitBtn">✦ 进行第二次分析 · Deepen the Analysis</button>
+  </div>
+
   <div class="analyzing-footer" id="aFooter">
-    <button class="restart-btn" id="restartBtn2">重新问诊</button>
+    <button class="restart-btn" id="restartBtn2">重新问诊<span class="en-sub">Start Over</span></button>
   </div>
 </div>
 
 <!-- Scripts -->
+<script src="js/music.js"></script>
+<script src="js/soundscape.js"></script>
 <script src="js/iching.js"></script>
 <script src="js/radarChart.js"></script>
 <script src="js/analyst.js"></script>

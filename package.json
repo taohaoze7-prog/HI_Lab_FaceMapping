@@ -1,7 +1,7 @@
 {
   "name": "hi-lab-facemapping",
   "version": "1.0.0",
-  "description": "东方全息生命计算 — H&I Lab",
+  "description": "观相 Guan Xiang — H&I Lab",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

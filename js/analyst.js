@@ -11,6 +11,8 @@ const Analyst = {
   _lastResult:  null,
   _lastAnswers: null,
   _firstAnalysisText: '',
+  _roundCount: 0,            // 0 = none yet, 1 = first done, 2+ = deeper rounds
+  _conversation: [],         // [{ round, userDetails, analysis }]
 
   init() {
     document.getElementById('deeperSubmitBtn').addEventListener('click', () => {
@@ -30,14 +32,27 @@ const Analyst = {
     this._lastResult  = result;
     this._lastAnswers = answers;
     this._firstAnalysisText = '';
+    this._roundCount = 0;
+    this._conversation = [];
 
-    // Reset deeper section
+    // Reset deeper section (handles both fresh state and post-multi-round)
     const wrap = document.getElementById('deeperInputWrap');
     wrap.classList.remove('visible');
     document.getElementById('deeperTextarea').value = '';
-    document.getElementById('deeperSubmitBtn').disabled = false;
-    document.getElementById('deeperBody').style.display = 'none';
-    document.getElementById('dContent').innerHTML = '';
+    const submitBtn = document.getElementById('deeperSubmitBtn');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '✦ 进行第二次分析 · Deepen the Analysis';
+    const phase = document.getElementById('phaseAnalyzing');
+    phase.querySelectorAll('.analyzing-body.deeper-body:not(#deeperBody)').forEach(el => el.remove());
+    const deeperBody = document.getElementById('deeperBody');
+    deeperBody.style.display = 'none';
+    let dContentEl = document.getElementById('dContent') || phase.querySelector('[id^="dContent-round-"]');
+    if (dContentEl) {
+      dContentEl.id = 'dContent';
+      dContentEl.innerHTML = '';
+    }
+    const divLabel = deeperBody.querySelector('.deeper-divider-label');
+    if (divLabel) divLabel.textContent = '第二次分析 · Round 2 — Deeper Reading';
 
     this.analyze(result, answers);
   },
@@ -48,6 +63,8 @@ const Analyst = {
   async analyze(result, answers) {
     if (this.isStreaming) return;
     this.isStreaming = true;
+
+    if (typeof Soundscape !== 'undefined') Soundscape.ritualDivination();
 
     document.getElementById('aHexName').textContent = result.hexagram.title;
 
@@ -65,8 +82,10 @@ const Analyst = {
     const prompt = this.buildPrompt(result, answers);
 
     try {
-      const fullText = await this.stream(prompt, contentEl);
+      const fullText = await this.stream(prompt, contentEl, true);
       this._firstAnalysisText = fullText;
+      this._roundCount = 1;
+      this._conversation.push({ round: 1, userDetails: '(initial four-diagnosis intake)', analysis: fullText });
 
       // Reveal deeper input after a short pause
       setTimeout(() => {
@@ -85,33 +104,74 @@ const Analyst = {
 
   /**
    * Deeper analysis using the extra details the user typed.
+   * Supports multiple rounds — each new submission appends a new section.
    */
   async deeperAnalyze() {
     const details = document.getElementById('deeperTextarea').value.trim();
     if (!details || this.isStreaming) return;
+    this.isStreaming = true;
 
-    document.getElementById('deeperSubmitBtn').disabled = true;
+    const submitBtn = document.getElementById('deeperSubmitBtn');
+    submitBtn.disabled = true;
 
     const deeperBodyEl = document.getElementById('deeperBody');
-    const dContentEl   = document.getElementById('dContent');
     deeperBodyEl.style.display = 'block';
+
+    const roundNum = this._roundCount + 1;
+    const sectionId = `dContent-round-${roundNum}`;
+
+    // First deeper round writes into the existing #dContent.
+    // Subsequent rounds append a fresh divider+container.
+    let dContentEl;
+    if (roundNum === 2) {
+      dContentEl = document.getElementById('dContent');
+      dContentEl.id = sectionId;
+      // also set the existing divider label to include round number
+      const divLabel = deeperBodyEl.querySelector('.deeper-divider-label');
+      if (divLabel) divLabel.textContent = `第二次分析 · Round 2 — Deeper Reading`;
+    } else {
+      const wrap = document.createElement('div');
+      wrap.className = 'analyzing-body deeper-body';
+      wrap.innerHTML = `
+        <div class="deeper-divider">
+          <span class="deeper-divider-label">第${this._cn(roundNum)}次分析 · Round ${roundNum} — Further Reading</span>
+        </div>
+        <div class="analyzing-content" id="${sectionId}"></div>`;
+      deeperBodyEl.parentNode.insertBefore(wrap, document.getElementById('deeperInputWrap'));
+      dContentEl = document.getElementById(sectionId);
+    }
+
     dContentEl.innerHTML = `
       <div class="analyzing-loading">
-        深层辨证中<span class="dot-pulse"><span></span><span></span><span></span></span>
+        深层辨证中 · Diagnosing<span class="dot-pulse"><span></span><span></span><span></span></span>
       </div>`;
 
-    // Scroll to the deeper section
+    // Scroll to the new section
     setTimeout(() => {
-      deeperBodyEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      dContentEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
 
-    const prompt = this.buildDeeperPrompt(details);
+    const prompt = this.buildDeeperPrompt(details, roundNum);
 
     try {
-      await this.stream(prompt, dContentEl, true);
+      const fullText = await this.stream(prompt, dContentEl, true);
+      this._roundCount = roundNum;
+      this._conversation.push({ round: roundNum, userDetails: details, analysis: fullText });
+
+      // Reset textarea for next round
+      document.getElementById('deeperTextarea').value = '';
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `✦ 继续追问 · Ask a Follow-up`;
     } catch (error) {
       dContentEl.innerHTML = this.errorHTML(error.message);
+      submitBtn.disabled = false;
     }
+
+    this.isStreaming = false;
+  },
+
+  _cn(n) {
+    return ['', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'][n] || n;
   },
 
   /**
@@ -124,7 +184,7 @@ const Analyst = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 2048, temperature: 0.7 },
+        generationConfig: { maxOutputTokens: 6144, temperature: 0.7 },
       }),
     });
 
@@ -187,101 +247,156 @@ const Analyst = {
   },
 
   /**
-   * Initial TCM diagnosis prompt.
+   * Initial TCM diagnosis prompt — bilingual (English first, [MANDARIN] divider, Chinese after).
    */
   buildPrompt(result, answers) {
-    const elemNames = { metal: '金', wood: '木', water: '水', fire: '火', earth: '土' };
+    const elemNames   = { metal: '金', wood: '木', water: '水', fire: '火', earth: '土' };
+    const elemNamesEn = { metal: 'Metal', wood: 'Wood', water: 'Water', fire: 'Fire', earth: 'Earth' };
     const w = result.weights;
 
     const answerLines = Object.entries(answers).map(([key, val]) => {
       const labelMap = {
-        faceShape: '面形', complexion: '气色', voice: '声纹',
-        emotion: '情志', taste: '饮食', sleep: '睡眠',
+        faceShape: ['面形', 'Face shape'], complexion: ['气色', 'Complexion'],
+        voice: ['声纹', 'Voice'], emotion: ['情志', 'Emotion'],
+        taste: ['饮食', 'Taste preference'], sleep: ['睡眠', 'Sleep'],
       };
-      return `- ${labelMap[key] || key}：${val.text}（${elemNames[val.element] || '未知'}）`;
+      const [zh, en] = labelMap[key] || [key, key];
+      return `- ${zh} / ${en}: ${val.text} (${elemNames[val.element] || '?'} / ${elemNamesEn[val.element] || '?'})`;
     }).join('\n');
 
     const weightLine = Object.entries(w)
-      .map(([k, v]) => `${elemNames[k]}:${Math.round(v * 100)}`)
-      .join(' ');
+      .map(([k, v]) => `${elemNamesEn[k]}:${Math.round(v * 100)}%`)
+      .join('  ');
 
-    return `你是一位精通中医面诊、经络学说和五行辨证的资深分析师。请用温和专业的语气进行分析。
+    return `You are a senior practitioner of Traditional Chinese Medicine, expert in face diagnosis (mian zhen), meridian theory, and Five-Element pattern differentiation. Write in a warm, professional, confident tone — no hedging, no AI disclaimers, no "as an AI" preambles.
 
-以下是通过望闻问切四诊收集的信息：
-
-【四诊数据】
+PATIENT FOUR-DIAGNOSIS INTAKE (望闻问切)
 ${answerLines}
 
-【卦象】${result.hexagram.title}（第${result.hexagram.num}卦）— ${result.hexagram.nature}
-【五行权重】${weightLine}
+Hexagram: ${result.hexagram.title} (#${result.hexagram.num}) — ${result.hexagram.nature}
+Five-element weights: ${weightLine}
 
-请按以下结构输出分析：
+This reading is delivered live by a host to an audience. The host must be able to scan the top and grab key points instantly, then expand into specifics. Optimise for that.
 
-## 体质辨识
+OUTPUT STRUCTURE — use these EXACT English headings, in this order:
 
-综合六项指标判断体质类型，说明五行偏盛与不足的关系，以及与卦象的呼应。2-3段即可。
+## Verdict
+ONE bold sentence, ≤20 words. The single-line takeaway the host can open with. Example form: "A Wood-Fire constitution meeting the Hexagram of Fire — bright mind, but the heart-spirit burns fast."
 
-## 脏腑分析
+## Key Points
+Exactly three bullet points, each ONE short sentence:
+- **Constitution:** [core label] — [one-clause why]
+- **Hexagram signal:** [what this hexagram is saying about them right now]
+- **Watch for:** [the single most important risk or tendency]
 
-重点分析最弱五行对应的脏腑系统，说明可能的身体表现和潜在风险。结合其他指标做交叉验证。2-3段即可。
+## Constitutional & Organ Reading
+One substantial paragraph (90-130 words). Identify the constitutional type from all six indicators together, name the weakest element and its zang-fu organ system, and describe likely physical manifestations. Be specific — reference the patient's actual answers, not generic TCM.
 
-## 个性化调理方案
+## Hexagram Life Insight
+One paragraph (80-110 words). Read the hexagram as a guide to the patient's current life rhythm — personality leaning, where opportunity sits, what to guard against. Tie it back to the body, not abstract fortune.
 
-分三个维度给出具体建议：
+## Regimen
+Up to 4 bullets total. Each bullet ONE line, concrete and actionable:
+- **Diet:** [1-2 specific foods/drinks + when]
+- **Acupoint:** [1 point with pinyin + location + how to press]
+- **Rhythm:** [sleep / movement / seasonal — pick the most urgent one]
+- **Emotion:** [one clear instruction for the heart-spirit]
 
-**食养**：推荐 3-4 种具体食材或饮品，说明功效。
+## This Week's Focus
+ONE sentence. The single observable signal the patient should track this week. Sets up the next round.
 
-**穴位**：推荐 2-3 个穴位，说明位置和按摩方法。
+LENGTH & STYLE
+- Total English: 350-500 words.
+- Be specific, reference the patient's actual answers, no generic filler.
+- Begin immediately with "## Verdict" — no preamble, no AI disclaimers.
 
-**起居**：作息建议、运动方式、情志调节方法各一条。
+After the English completes, output the EXACT marker line on its own:
+[MANDARIN]
 
-保持简洁，总字数控制在 600-800 字。`;
+Then write a faithful Chinese translation using these exact headings in this order:
+## 一句定论
+## 关键三点
+## 体质与脏腑
+## 卦象人生启示
+## 调养建议
+## 本周观察
+
+Inside the Chinese translation, translate the bullet sub-labels as **体质**、**卦象信号**、**需留意**、**食养**、**穴位**、**节律**、**情志**.
+
+The Chinese section must be a faithful translation, not a re-analysis.`;
   },
 
   /**
-   * Deeper follow-up prompt — includes first analysis + user details.
-   * Output format: English first, then [MANDARIN] marker, then Chinese translation.
+   * Deeper follow-up prompt — bilingual, supports multi-round.
+   * roundNum: 2 = first deeper round, 3+ = further rounds.
    */
-  buildDeeperPrompt(userDetails) {
+  buildDeeperPrompt(userDetails, roundNum = 2) {
     const result  = this._lastResult;
     const answers = this._lastAnswers;
-    const elemNames = { metal: '金', wood: '木', water: '水', fire: '火', earth: '土' };
+    const elemNames = { metal: 'Metal', wood: 'Wood', water: 'Water', fire: 'Fire', earth: 'Earth' };
 
     const answerLines = Object.entries(answers).map(([key, val]) => {
       const labelMap = {
         faceShape: 'Face shape', complexion: 'Complexion', voice: 'Voice',
         emotion: 'Emotion', taste: 'Taste preference', sleep: 'Sleep',
       };
-      return `- ${labelMap[key] || key}: ${val.text} (${val.element || 'unknown'})`;
+      return `- ${labelMap[key] || key}: ${val.text} (${elemNames[val.element] || 'unknown'})`;
     }).join('\n');
 
     const weightLine = Object.entries(result.weights)
-      .map(([k, v]) => `${k}:${Math.round(v * 100)}%`)
+      .map(([k, v]) => `${elemNames[k]}:${Math.round(v * 100)}%`)
       .join('  ');
 
-    return `You are a senior Traditional Chinese Medicine practitioner writing a personalised deeper reading. Write directly — no introductory phrases, no disclaimers, no references to being an AI or a language model.
+    // Build conversation history (compact form)
+    const history = this._conversation.map(turn => {
+      const summary = (turn.analysis || '').slice(0, 600);
+      return `--- Round ${turn.round} ---
+PATIENT NOTE: ${turn.userDetails}
+ANALYSIS SUMMARY: ${summary}`;
+    }).join('\n\n');
 
-PATIENT CONTEXT
+    return `You are a senior Traditional Chinese Medicine practitioner conducting an iterative consultation. This is round ${roundNum} of the conversation. Write directly — no AI preambles, no disclaimers.
+
+PATIENT INTAKE (four-diagnosis baseline)
 ${answerLines}
 
 Hexagram: ${result.hexagram.title} (#${result.hexagram.num}) — ${result.hexagram.nature}
 Five-element weights: ${weightLine}
 
-INITIAL ANALYSIS (summary)
-${this._firstAnalysisText.slice(0, 1000)}
+PRIOR CONSULTATION HISTORY
+${history}
 
-PATIENT'S ADDITIONAL DETAILS
+PATIENT'S NEW INPUT (round ${roundNum})
 ${userDetails}
 
-OUTPUT RULES
-- Begin writing immediately with the first section heading.
-- Use exactly these three section headings (in this order): ## Deeper Pattern, ## Targeted Recommendations, ## Key Cautions
-- Under each heading write 2–4 concise sentences or bullet points.
-- Total length: 220–300 words.
-- No preamble. No closing remarks. No "In conclusion". No "As a TCM practitioner".
-- After the English is complete, output the exact marker line: [MANDARIN]
-- Then write a faithful Mandarin Chinese translation of everything above the marker, using the same three headings translated as: ## 深层辨证, ## 精准调理, ## 注意事项
-- The Mandarin section must be a translation, not a new analysis.`;
+OUTPUT STRUCTURE — use exactly these four English headings, in this order:
+
+## Deeper Pattern
+2-3 sentences. What does this new information reveal about the underlying pattern? Be specific.
+
+## What This Changes from Round ${roundNum - 1}
+2-3 sentences. Explicitly call out where the prior analysis was reinforced, refined, or revised by the new input. Don't be vague — name the shift.
+
+## Targeted Recommendations
+3-4 concrete, prioritised actions. Each one tied to the new information. Include at least one diet, one acupoint or movement, and one behavioural / scheduling change.
+
+## 7-Day Tracking Plan
+3 specific signals to observe over the next week. Each must be measurable or clearly observable (timing, sensation quality, frequency). These will inform the next round.
+
+LENGTH
+- Total English: 350-500 words.
+- Begin immediately with "## Deeper Pattern" — no preamble.
+
+After the English completes, output on its own line:
+[MANDARIN]
+
+Then write a faithful Chinese translation using these exact headings:
+## 深层辨证
+## 与第${this._cn(roundNum - 1)}次分析的差异
+## 精准调理
+## 七日追踪计划
+
+The Chinese section must be a translation, not a re-analysis.`;
   },
 
   /**
